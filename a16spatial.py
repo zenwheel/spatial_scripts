@@ -5,6 +5,7 @@ import subprocess
 import pathlib
 import shutil
 import argparse
+from datetime import datetime
 
 def apply_lens_correction(input_dir='files', lens_params="k1=-0.2:k2=-0.025"):
 	"""
@@ -157,6 +158,113 @@ def copy_exif_tags(source_dir='a', dest_dir=None):
 	print(f"Total source files: {len(source_files)}")
 	print(f"Successfully processed: {success_count}")
 	print(f"Skipped: {skipped_count}")
+	print(f"Errors: {error_count}")
+
+def set_datetime_from_filename(directory='a', pattern=r'IMG(\d{8})-(\d{6})'):
+	"""
+	Set EXIF date/time tags based on dates embedded in filenames.
+
+	The script looks for filenames matching the pattern and extracts date and time information
+	to set the following EXIF tags: DateTimeOriginal, CreateDate, and ModifyDate.
+
+	Args:
+		directory (str): Directory containing the image files
+		pattern (str): Regular expression pattern to extract date and time from filenames
+		dry_run (bool): If True, only show what would be done without making changes
+	"""
+	# Ensure directory exists
+	if not os.path.isdir(directory):
+		print(f"Error: Directory '{directory}' not found.")
+		return
+
+	# Get absolute path
+	dir_path = os.path.abspath(directory)
+
+	# Compile the regex pattern
+	regex = re.compile(pattern)
+
+	# Get all files in the directory
+	files = [f for f in os.listdir(dir_path)
+			if os.path.isfile(os.path.join(dir_path, f))
+			and (f.lower().endswith('-sbs.tiff'))]
+
+	if not files:
+		print(f"No files found in directory '{directory}'.")
+		return
+
+	# Process files
+	success_count = 0
+	skipped_count = 0
+	error_count = 0
+
+	for filename in files:
+		# Try to match the pattern
+		match = regex.search(filename)
+		if not match:
+			print(f"Skipping {filename} - does not match the expected pattern.")
+			skipped_count += 1
+			continue
+
+		# Extract date and time parts
+		try:
+			date_part = match.group(1)  # YYYYMMDD
+			time_part = match.group(2)  # HHMMSS
+
+			# Parse date and time
+			year = date_part[0:4]
+			month = date_part[4:6]
+			day = date_part[6:8]
+
+			hour = time_part[0:2]
+			minute = time_part[2:4]
+			second = time_part[4:6]
+
+			# Format for exiftool: "YYYY:MM:DD HH:MM:SS"
+			exif_datetime = f"{year}:{month}:{day} {hour}:{minute}:{second}"
+
+			# Validate the date and time
+			datetime.strptime(exif_datetime, "%Y:%m:%d %H:%M:%S")
+
+			file_path = os.path.join(dir_path, filename)
+
+			print(f"Processing: {filename}")
+			print(f"  Extracted datetime: {exif_datetime}")
+
+			# Build exiftool command to set multiple date/time tags
+			command = [
+				"exiftool",
+				"-overwrite_original",
+				"-DateTimeOriginal=" + exif_datetime,
+				"-CreateDate=" + exif_datetime,
+				"-ModifyDate=" + exif_datetime,
+				file_path
+			]
+
+			# Run exiftool command
+			result = subprocess.run(command, check=True, capture_output=True, text=True)
+			print(f"  Successfully set date/time for {filename}")
+			if result.stdout:
+				print(f"  Output: {result.stdout.strip()}")
+			success_count += 1
+
+		except ValueError as e:
+			print(f"Error parsing date/time from {filename}: {e}")
+			error_count += 1
+		except subprocess.CalledProcessError as e:
+			print(f"Error setting date/time for {filename}:")
+			if e.stdout:
+				print(f"  Output: {e.stdout.strip()}")
+			if e.stderr:
+				print(f"  Error: {e.stderr.strip()}")
+			error_count += 1
+		except Exception as e:
+			print(f"Unexpected error processing {filename}: {e}")
+			error_count += 1
+
+	print("\nDate/time setting summary:")
+	print(f"Total files: {len(files)}")
+	print(f"Successfully processed: {success_count}")
+	print(f"Skipped (no match): {skipped_count}")
 	print(f"Errors: {error_count}")
 
 def match_and_rename_files(dir_a='a', dir_b='b'):
@@ -511,6 +619,10 @@ def main():
 	print("Restoring EXIF tags...")
 	copy_exif_tags(args.left)
 	print("Processing complete.")
+
+	print("Starting EXIF date/time setting process...")
+	set_datetime_from_filename(args.left, r'IMG(\d{8})-(\d{6})')
+	print("Process complete.")
 
 	print("Starting spatial photo creation...")
 	process_stereo_files(args.left, args.baseline, args.hfov)
