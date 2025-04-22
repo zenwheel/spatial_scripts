@@ -43,9 +43,9 @@ def process_images(folder1, folder2, spatial_params=None):
 	"""
 	Process images in two folders:
 	1. Ensure both folders have the same number of images
-	2. Bake rotation into images using jpegtran
-	3. Copy EXIF data from folder1 to folder2
-	4. Rename images in folder2 to match folder1
+	2. Rotate Images
+	3. Align Images
+	4. Copy EXIF data to output images
 	5. Run spatialPhotoTool on matching image pairs
 	"""
 	# Ensure the folders exist
