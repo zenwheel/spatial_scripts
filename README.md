@@ -24,6 +24,9 @@ The script defaults to a 23.5mm sensor width which is the width of the sensor in
 
 The script, like the other one, will rename the files from the right camera to match those from the left camera and overwrite their metadata with that of the metadata from the left as well.  The images will go through stereo alignment, and then merged into a spatial photo for Vision Pro.  Since my SLR camera lenses don't have extreme fisheye error like the cheap _Action Cameras_, that step is not required.
 
+![image](images/slrfront.jpeg)
+![image](images/slrback.jpeg)
+
 ### Notes
 
 These scripts assume `ffmpeg`, [`spatialPhotoTool`](https://github.com/zenwheel/spatialPhotoTool), [`StereoAutoAlign`](https://stereo.jpn.org/stereoautoalign/index_mace.html) and [`exiftool`](https://www.exiftool.org) are all in your `$PATH`.  [Homebrew](https://brew.sh) can probably make most of that happen for you.
