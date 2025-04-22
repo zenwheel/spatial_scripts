@@ -18,7 +18,7 @@ This script prefers metadata from the left eye. The files that are written by th
 
 This is a similar script to the one above, except for not as inexpensive of cameras.  I use it with a pair of Sony α6000 digital SLR Cameras with [SmallRig Camera Cages](https://www.amazon.com/dp/B0185IAYZY) that allow them to be mounted in weird ways, such as upside down or on their sides on a quick release rail like the above rig.  To trigger them, I use a pair of [PROfezzion Wireless Shutter Release Remote Controls](https://www.amazon.com/dp/B09HJDZ5VL) which are RF and allow using multiple receivers on the same channel with the same remote.  With one camera upside down, the lenses can get as close as 105mm, with them mounted on their edges, with the tops together I can get the lenses as close as a baseline of 85mm, which is basically touching with a standard lens.  There's no way to get a 65mm baseline like human vision, but this isn't too bad.
 
-I like to keep the landscape aspect ratio, so putting the cameras on their edge isn't my favorite, so that can be fixed by cropping the images and losing a few pixels (left as an exercise to the reader) or just living with the slightly hyperstereo 105mm baseline.
+I like to keep the landscape aspect ratio, so putting the cameras on their edge isn't my favorite, so that can be fixed by cropping the images and losing a few pixels (with the `-c option`) or just living with the slightly hyperstereo 105mm baseline.
 
 The script defaults to a 23.5mm sensor width which is the width of the sensor in the Sony α6000 camera.  This value is used for calculating the horizontal field of view.
 

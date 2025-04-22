@@ -4,6 +4,7 @@ import subprocess
 import argparse
 import re
 import sys
+from PIL import Image
 
 def orientation_to_jpegtran_arg(orientation: int) -> list[str] | None:
 	return {
@@ -39,14 +40,15 @@ def run_command(command, description=None):
 		print(f"Command error: {e.stderr}")
 		return None
 
-def process_images(folder1, folder2, spatial_params=None):
+def process_images(folder1, folder2, crop=0, spatial_params=None):
 	"""
 	Process images in two folders:
 	1. Ensure both folders have the same number of images
 	2. Rotate Images
 	3. Align Images
-	4. Copy EXIF data to output images
-	5. Run spatialPhotoTool on matching image pairs
+	4. Crop Images
+	5. Copy EXIF data to output images
+	6. Run spatialPhotoTool on matching image pairs
 	"""
 	# Ensure the folders exist
 	if not os.path.isdir(folder1):
@@ -139,11 +141,25 @@ def process_images(folder1, folder2, spatial_params=None):
 		]
 		run_command(align_cmd)
 
+	if crop > 0:
+		# crop images to specified height
+		print("\nStep 4: Crop images...")
+
+		for i, img_name in enumerate(folder1_images):
+			name, _ = os.path.splitext(img_name)
+			file_path = os.path.join(folder1, name + '-sbs.tiff')
+			with Image.open(file_path) as img:
+				width, height = img.size
+				new_height = min(crop, height)
+				cropped = img.crop((0, height - new_height, width, new_height))
+				# Save back to the same file
+				cropped.save(file_path)
+
 	# this step copies the EXIF data from the original LEFT side
 	# images to the TIFF files, to preserve timestamps and camera
 	# metadata, but give precedence to the LEFT camera, without doing
 	# it at this point, the alignment step removes the metadata
-	print("\nStep 4: Copy EXIF data to output images...")
+	print("\nStep 5: Copy EXIF data to output images...")
 	for i, img_name in enumerate(folder1_images):
 		img1_path = os.path.join(folder1, img_name)
 		name, _ = os.path.splitext(img_name)
@@ -161,7 +177,7 @@ def process_images(folder1, folder2, spatial_params=None):
 	# convert the TIFF file to a spatial image in a HEIF container
 	# compatible with Apple devices
 	if spatial_params:
-		print("\nStep 5: Running spatialPhotoTool on matching image pairs...")
+		print("\nStep 6: Running spatialPhotoTool on matching image pairs...")
 
 		for i, img_name in enumerate(folder1_images):
 			img1_path = os.path.join(folder1, img_name)
@@ -193,6 +209,7 @@ def main():
 	parser.add_argument('-s', type=float, default=23.5, help='Sensor size value for spatial image (default: 23.5)')
 	parser.add_argument('-f', type=int, default=23, help='Focal length of lens value for spatial image (default: 23)')
 	parser.add_argument('-b', type=float, default=105.0, help='Baseline/IPD parameter for spatial image (default: 105.0)')
+	parser.add_argument('-c', type=int, default=0, help='Crop to height (default: 0/none)')
 	parser.add_argument('--skip-spatial', action='store_true', help='Skip conversion to spatial image')
 
 	# Parse arguments
@@ -207,7 +224,7 @@ def main():
 			"b": args.b
 		}
 
-	process_images(args.folder1, args.folder2, spatial_params)
+	process_images(args.folder1, args.folder2, args.c, spatial_params)
 
 if __name__ == "__main__":
 	main()
