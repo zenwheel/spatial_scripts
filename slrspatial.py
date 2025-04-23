@@ -40,7 +40,7 @@ def run_command(command, description=None):
 		print(f"Command error: {e.stderr}")
 		return None
 
-def process_images(folder1, folder2, crop=0, alignment='bottom', spatial_params=None):
+def process_images(folder1, folder2, crop='none', spatial_params=None):
 	"""
 	Process images in two folders:
 	1. Ensure both folders have the same number of images
@@ -141,7 +141,7 @@ def process_images(folder1, folder2, crop=0, alignment='bottom', spatial_params=
 		]
 		run_command(align_cmd)
 
-	if crop > 0:
+	if crop != 'none':
 		# crop images to specified height
 		print("\nStep 4: Crop images...")
 
@@ -150,13 +150,17 @@ def process_images(folder1, folder2, crop=0, alignment='bottom', spatial_params=
 			file_path = os.path.join(folder1, name + '-sbs.tiff')
 			with Image.open(file_path) as img:
 				width, height = img.size
-				new_height = min(crop, height)
-				if alignment == 'top':
-					cropped = img.crop((0, 0, width, new_height))
-				elif alignment == 'middle':
-					cropped = img.crop((0, (height - new_height) / 2, width, new_height))
+				aspect_ratio = (width / 2) / height
+				target_height = int(aspect_ratio * (width / 2))
+				top = 0
+				if crop == 'top':
+					top = 0
+				elif crop == 'middle':
+					top = (height - target_height) // 2
 				else:
-					cropped = img.crop((0, height - new_height, width, new_height))
+					top = height - target_height
+				cropped = img.crop((0, top, width, top + target_height))
+
 				# Save back to the same file
 				cropped.save(file_path)
 
@@ -214,15 +218,14 @@ def main():
 	parser.add_argument('-s', type=float, default=23.5, help='Sensor size value for spatial image (default: 23.5)')
 	parser.add_argument('-f', type=int, default=23, help='Focal length of lens value for spatial image (default: 23)')
 	parser.add_argument('-b', type=float, default=105.0, help='Baseline/IPD parameter for spatial image (default: 105.0)')
-	parser.add_argument('-c', type=int, default=0, help='Crop to height (default: 0/none)')
-	parser.add_argument('-a', type=str, default='bottom', help='alignment for crop (default: bottom)')
+	parser.add_argument('-c', type=str, default='none', help='crop alignment (none|top|middle|bottom) (default: none)')
 	parser.add_argument('--skip-spatial', action='store_true', help='Skip conversion to spatial image')
 
 	# Parse arguments
 	args = parser.parse_args()
 
-	if args.a != 'top' and args.a != 'middle':
-		args.a = 'bottom'
+	if args.c != 'top' and args.c != 'middle' and args.c != 'bottom' and args.c != 'none':
+		args.c = 'none'
 
 	# Set up spatial parameters
 	spatial_params = None
@@ -233,7 +236,7 @@ def main():
 			"b": args.b
 		}
 
-	process_images(args.folder1, args.folder2, args.c, args.a, spatial_params)
+	process_images(args.folder1, args.folder2, args.c, spatial_params)
 
 if __name__ == "__main__":
 	main()
